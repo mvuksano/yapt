@@ -5,6 +5,10 @@
 	  "gflags",
 	  "glog",
 	  "gtest",
-	  "libevent"
+	  "folly",
+	  {
+		"name": "libevent",
+		"features": [ "thread" ]
+	  }
   ]
 }

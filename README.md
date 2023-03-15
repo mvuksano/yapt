@@ -12,8 +12,25 @@ Includes support for unit testing via GoogleTest library as well as boost librar
 1. Configure vcpkg
 
 ```
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake 
+./vcpkg/vcpkg install
 ```
+
+In order to use a different compiler (e.g. clang) or a specific version of GCC you can use custom triplets:
+
+```
+./vcpkg/vcpkg install --overlay-triplets=custom-triplets
+```
+
+```
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+```
+
+If you need to provide customizations for GCC you can use:
+
+```
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=./toolchains/gcc.cmake
+```
+
 1. Build using cmake
 
 ```

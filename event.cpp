@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <glog/logging.h>
 
+#include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -13,9 +14,19 @@
 
 #define MAX_PACKET_SIZE 64
 
-template <typename T>
+#define EXIT_READ_CALLBACK(arg, timeout)   \
+  event_add((struct event *)arg, nullptr); \
+  return
+
+template <IsAnyOf<ReadEv, WriteEv, Periodic> T>
 struct event *Event<T>::get() {
   return evt;
+}
+
+template <IsAnyOf<ReadEv, WriteEv, Periodic> T>
+bool Event<T>::enabled() {
+  return event_pending(this->evt, EV_READ | EV_WRITE | EV_SIGNAL | EV_TIMEOUT,
+                       nullptr);
 }
 
 template <>
@@ -26,6 +37,7 @@ Event<WriteEv>::Event(EventBase &evb, int fd) {
   this->evt = event_new(
       evb.get(), static_cast<evutil_socket_t>(fd), EV_WRITE,
       [](evutil_socket_t socket_fd, short what, void *arg) {
+        VLOG(6) << "Write callback triggered due to " << what;
         struct sockaddr_in dest_addr;
         dest_addr.sin_family = AF_INET;
         auto dest_ip = Context::ips[0];
@@ -52,9 +64,12 @@ Event<WriteEv>::Event(EventBase &evb, int fd) {
         }
 
         if (not Context::ips.empty()) {
-          VLOG(6)
-              << "There are more ip addresses to process. Activating event.";
+          VLOG(6) << "There are more ip addresses to process. Activating write "
+                     "event.";
           event_add((struct event *)arg, nullptr);
+        } else {
+          VLOG(6) << "There are no more ip addresses to process. Not "
+                     "activating write event.";
         }
       },
       event_self_cbarg());
@@ -67,14 +82,10 @@ Event<ReadEv>::Event(EventBase &evb) = delete;
 
 template <>
 Event<ReadEv>::Event(EventBase &evb, int fd) {
-  struct timeval five_seconds = {5, 0};
   this->evt = event_new(
       evb.get(), static_cast<evutil_socket_t>(fd), EV_TIMEOUT | EV_READ,
       [](evutil_socket_t socket_fd, short what, void *arg) {
         VLOG(6) << "Read callback triggered due to " << what;
-        if (what == EV_TIMEOUT) {
-          return;
-        }
 
         struct sockaddr_in src_addr;
         socklen_t src_len = sizeof(src_addr);
@@ -88,6 +99,24 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
         auto end_time = std::chrono::high_resolution_clock::now();
 
         auto src_addr_as_str = inet_ntoa(src_addr.sin_addr);
+        VLOG(6) << "Received packet from: " << src_addr_as_str;
+        if (std::none_of(Context::expected.cbegin(), Context::expected.cend(),
+                         [&src_addr_as_str](auto ip) {
+                           return src_addr_as_str == ip;
+                         })) {
+          VLOG(3)
+              << "Packet that was received was not expected from this host ("
+              << src_addr_as_str << ")";
+          EXIT_READ_CALLBACK(arg, nullptr);
+        }
+        if (std::all_of(Context::ipsToPing.cbegin(), Context::ipsToPing.cend(),
+                        [&src_addr_as_str](std::string ip) {
+                          return ip != src_addr_as_str;
+                        })) {
+          VLOG(3)
+              << "Received ICMP packet from a host we are not interested in.";
+          EXIT_READ_CALLBACK(arg, nullptr);
+        }
         auto start_time = Context::time_map.find(src_addr_as_str)->second;
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
             end_time - start_time);
@@ -109,16 +138,11 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
             break;
           }
         }
-        if (not Context::expected.empty()) {
-          struct timeval five_seconds = {5, 0};
-          event_add((struct event *)arg, &five_seconds);
-        } else {
-          VLOG(6) << "Not expecting any more responses and thus not activating "
-                     "event.";
-        }
+        VLOG(6) << "Reactivating read event.";
+        EXIT_READ_CALLBACK(arg, nullptr);
       },
       event_self_cbarg());
-  event_add(evt, &five_seconds);
+  event_add(evt, nullptr);
   VLOG(6) << "Added read event for socket " << fd;
 }
 
@@ -132,6 +156,11 @@ Event<Periodic>::Event(EventBase &evb) {
         struct timeval one_sec = {1, 0};
         event_add((struct event *)arg, &one_sec);
 
+        if (Context::writeEvent->enabled()) {
+          VLOG(6) << "There are more IPs to query, not doing anything for now.";
+          return;
+        }
+
         VLOG(6) << "Copying destination IPs to ping.";
         for (auto &ip : Context::expected) {
           LOG(INFO) << std::left << std::setw(10) << ip << "\t"
@@ -139,6 +168,7 @@ Event<Periodic>::Event(EventBase &evb) {
         }
         Context::expected = {};
         Context::ips = Context::ipsToPing;
+        Context::time_map.clear();
 
         event_add(Context::writeEvent->get(), nullptr);
         event_add(Context::readEvent->get(), nullptr);
@@ -149,9 +179,3 @@ Event<Periodic>::Event(EventBase &evb) {
 
 template <>
 Event<Periodic>::Event(EventBase &evb, int fd) = delete;
-
-template <typename T>
-Event<T>::~Event() {
-  VLOG(6) << "Clearning up event";
-  event_free(evt);
-}
