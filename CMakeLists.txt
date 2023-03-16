@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.12)
 project(yapt)
 
 # set(CMAKE_CXX_FLAGS "-save-temps=obj -O2 -g3")
-set(CMAKE_CXX_FLAGS "-O2 -g3")
 
 find_package(Boost REQUIRED COMPONENTS thread)
 find_package(GTest CONFIG REQUIRED)
