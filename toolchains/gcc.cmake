@@ -1,4 +1,4 @@
-find_program(GCC_COMPILER gcc gcc-12)
+find_program(GCC_COMPILER NAMES gcc-12 gcc)
 
 if(GCC_COMPILER)
     set(CMAKE_C_COMPILER ${GCC_COMPILER})
@@ -6,7 +6,7 @@ else()
     message(FATAL_ERROR "gcc compiler not found")
 endif()
 
-find_program(GPP_COMPILER g++ g++-12)
+find_program(GPP_COMPILER NAMES g++-12 g++)
 if(GPP_COMPILER)
     set(CMAKE_CXX_COMPILER ${GPP_COMPILER})
 else()
