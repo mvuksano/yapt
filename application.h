@@ -1,6 +1,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <arpa/inet.h>
 #include <event2/event.h>
 
 #include <memory>
@@ -12,7 +13,9 @@
 
 class App {
  public:
-  App(std::string);
+  using IpAddr = uint32_t;
+
+  App(std::vector<IpAddr>&& ipList);
   void run();
 
  private:

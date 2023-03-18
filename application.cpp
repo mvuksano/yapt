@@ -10,13 +10,12 @@
 #include "context.h"
 #include "eventbase.h"
 
-App::App(std::string ipList) {
-  std::istringstream iss(ipList);
-  std::string ip;
+App::App(std::vector<IpAddr>&& ipList) {
+  Context::ipsToPing = std::move(ipList);
 
-  while (std::getline(iss, ip, ',')) {
-    Context::ips.push_back(ip);
-    Context::ipsToPing.push_back(ip);
+  for (auto it = Context::ipsToPing.begin(); it != Context::ipsToPing.end();
+       ++it) {
+    Context::ips.push_back(*it);
   }
 
   auto sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);

@@ -41,21 +41,19 @@ Event<WriteEv>::Event(EventBase &evb, int fd) {
         struct sockaddr_in dest_addr;
         dest_addr.sin_family = AF_INET;
         auto dest_ip = Context::ips[0];
+        dest_addr.sin_addr.s_addr = dest_ip;
         Context::ips.erase(Context::ips.begin());
-        if (inet_pton(AF_INET, dest_ip.c_str(), &dest_addr.sin_addr) != 1) {
-          LOG(FATAL)
-              << "Failed to convert target ip address to network presentation.";
-        }
+        auto destIpStr = inet_ntoa(dest_addr.sin_addr);
 
         char packet[MAX_PACKET_SIZE];
         size_t packet_size = MAX_PACKET_SIZE;
         create_ping_request(packet, packet_size, 1);
 
-        VLOG(6) << "Sending ICMP ping packet to " << dest_ip.c_str()
-                << " using fd " << socket_fd;
-        Context::expected.push_back(dest_ip.c_str());
+        VLOG(6) << "Sending ICMP ping packet to " << destIpStr << " using fd "
+                << socket_fd;
+        Context::expected.push_back(dest_ip);
         auto start_time = std::chrono::high_resolution_clock::now();
-        Context::time_map[dest_ip.c_str()] = start_time;
+        Context::time_map[dest_ip] = start_time;
         auto ret = sendto(socket_fd, packet, packet_size, 0,
                           (struct sockaddr *)&dest_addr, sizeof(dest_addr));
         if (ret < 0) {
@@ -100,9 +98,10 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
 
         auto src_addr_as_str = inet_ntoa(src_addr.sin_addr);
         VLOG(6) << "Received packet from: " << src_addr_as_str;
+
         if (std::none_of(Context::expected.cbegin(), Context::expected.cend(),
-                         [&src_addr_as_str](auto ip) {
-                           return src_addr_as_str == ip;
+                         [&src_addr](auto ip) {
+                           return src_addr.sin_addr.s_addr == ip;
                          })) {
           VLOG(3)
               << "Packet that was received was not expected from this host ("
@@ -110,14 +109,15 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
           EXIT_READ_CALLBACK(arg, nullptr);
         }
         if (std::all_of(Context::ipsToPing.cbegin(), Context::ipsToPing.cend(),
-                        [&src_addr_as_str](std::string ip) {
-                          return ip != src_addr_as_str;
+                        [&src_addr](auto ip) {
+                          return ip != src_addr.sin_addr.s_addr;
                         })) {
           VLOG(3)
               << "Received ICMP packet from a host we are not interested in.";
           EXIT_READ_CALLBACK(arg, nullptr);
         }
-        auto start_time = Context::time_map.find(src_addr_as_str)->second;
+        auto start_time =
+            Context::time_map.find(src_addr.sin_addr.s_addr)->second;
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
             end_time - start_time);
         VLOG(6) << "Received " << recv_len << " bytes from " << src_addr_as_str
@@ -133,7 +133,7 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
 
         for (auto it = Context::expected.begin(); it != Context::expected.end();
              it++) {
-          if (*it == src_addr_as_str) {
+          if (*it == src_addr.sin_addr.s_addr) {
             Context::expected.erase(it);
             break;
           }
