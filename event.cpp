@@ -51,7 +51,9 @@ Event<WriteEv>::Event(EventBase &evb, int fd) {
 
         VLOG(6) << "Sending ICMP ping packet to " << destIpStr << " using fd "
                 << socket_fd;
-        Context::expected.push_back(dest_ip);
+        auto firstLower = std::lower_bound(Context::expected.cbegin(),
+                                           Context::expected.cend(), dest_ip);
+        Context::expected.insert(firstLower, dest_ip);
         auto start_time = std::chrono::high_resolution_clock::now();
         Context::time_map[dest_ip] = start_time;
         auto ret = sendto(socket_fd, packet, packet_size, 0,
@@ -98,11 +100,9 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
 
         auto src_addr_as_str = inet_ntoa(src_addr.sin_addr);
         VLOG(6) << "Received packet from: " << src_addr_as_str;
-
-        if (std::none_of(Context::expected.cbegin(), Context::expected.cend(),
-                         [&src_addr](auto ip) {
-                           return src_addr.sin_addr.s_addr == ip;
-                         })) {
+        if (not std::binary_search(Context::expected.cbegin(),
+                                   Context::expected.cend(),
+                                   src_addr.sin_addr.s_addr)) {
           VLOG(3)
               << "Packet that was received was not expected from this host ("
               << src_addr_as_str << ")";
@@ -131,12 +131,11 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
         }
         VLOG(7) << message.str();
 
-        for (auto it = Context::expected.begin(); it != Context::expected.end();
-             it++) {
-          if (*it == src_addr.sin_addr.s_addr) {
-            Context::expected.erase(it);
-            break;
-          }
+        auto element = std::lower_bound(Context::expected.cbegin(),
+                                        Context::expected.cend(),
+                                        src_addr.sin_addr.s_addr);
+        if (element != Context::expected.cend()) {
+          Context::expected.erase(element);
         }
         VLOG(6) << "Reactivating read event.";
         EXIT_READ_CALLBACK(arg, nullptr);

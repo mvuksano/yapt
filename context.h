@@ -7,6 +7,7 @@
 #include <chrono>
 #include <string>
 #include <unordered_map>
+#include <set>
 #include <vector>
 
 #include "event.h"
@@ -22,7 +23,7 @@ class Context {
       time_map;
   static std::vector<IpAddr> ips;
   static std::vector<IpAddr> ipsToPing;
-  static std::vector<IpAddr> expected;
+  static std::set<IpAddr> expected;
 
   static Event<ReadEv> *readEvent;
   static Event<WriteEv> *writeEvent;
