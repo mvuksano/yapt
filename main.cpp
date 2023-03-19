@@ -1,8 +1,9 @@
 #include <arpa/inet.h>
 #include <event2/thread.h>
-#include <folly/ScopeGuard.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+
+#include <boost/scope_exit.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -28,7 +29,9 @@ std::vector<IPAddr> getIpsToPingFromFile(const std::string fileName) {
   inputFile.open(fileName.c_str(), std::ios::in);
 
   if (inputFile.good()) {
-    auto guard = folly::makeGuard([&] { inputFile.close(); });
+    BOOST_SCOPE_EXIT(&inputFile) {
+      inputFile.close();
+    } BOOST_SCOPE_EXIT_END
 
     while (true) {
       if (!getline(inputFile, line)) {
