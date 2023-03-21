@@ -1,20 +1,21 @@
 cmake_minimum_required(VERSION 3.12)
 project(yapt)
 
-# set(CMAKE_CXX_FLAGS "-save-temps=obj -O2 -g3")
-
 find_package(Boost REQUIRED COMPONENTS thread)
 find_package(GTest CONFIG REQUIRED)
 find_package(Libevent CONFIG REQUIRED)
 find_package(glog CONFIG REQUIRED)
 find_package(gflags CONFIG REQUIRED)
 
-add_executable(main main.cpp application.h application.cpp icmp.h eventbase.h eventbase.cpp event.h event.cpp context.h context.cpp)
-target_link_libraries(main PUBLIC ${Boost_LIBRARIES} glog::glog gflags::gflags libevent::core libevent::extra libevent::pthreads)
-target_include_directories(main PUBLIC ${Boost_INCLUDE_DIRS})
+set(SOURCES application.h application.cpp utils.hpp icmp.h eventbase.h eventbase.cpp event.h event.cpp context.h context.cpp)
+set(LIBEVENT_LIBS libevent::core libevent::extra libevent::pthreads)
 
-# add_executable(main_test main_test.cpp)
-# target_link_libraries(main_test PRIVATE GTest::gtest GTest::gtest_main)
+add_executable(yapt main.cpp ${SOURCES})
+target_link_libraries(yapt PUBLIC ${Boost_LIBRARIES} glog::glog gflags::gflags ${LIBEVENT_LIBS})
+target_include_directories(yapt PUBLIC ${Boost_INCLUDE_DIRS})
+
+add_executable(yapt_test main_test.cpp ${SOURCES})
+target_link_libraries(yapt_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main glog::glog gflags::gflags ${LIBEVENT_LIBS})
 
 enable_testing()
-# add_test(NAME main WORKING_DIRECTORY ${CMAKE_BUILD_DIR}/bin COMMAND main_test)
+add_test(NAME yapt WORKING_DIRECTORY ${CMAKE_BUILD_DIR} COMMAND yapt_test)

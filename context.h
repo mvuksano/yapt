@@ -5,9 +5,9 @@
 
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <chrono>
+#include <set>
 #include <string>
 #include <unordered_map>
-#include <set>
 #include <vector>
 
 #include "event.h"

@@ -14,10 +14,6 @@
 
 #define MAX_PACKET_SIZE 64
 
-#define EXIT_READ_CALLBACK(arg, timeout)   \
-  event_add((struct event *)arg, nullptr); \
-  return
-
 template <IsAnyOf<ReadEv, WriteEv, Periodic> T>
 struct event *Event<T>::get() {
   return evt;
@@ -59,7 +55,7 @@ Event<WriteEv>::Event(EventBase &evb, int fd) {
         auto ret = sendto(socket_fd, packet, packet_size, 0,
                           (struct sockaddr *)&dest_addr, sizeof(dest_addr));
         if (ret < 0) {
-          LOG(FATAL) << "Failed to send ping request. sendto syscall returned"
+          LOG(FATAL) << "Failed to send ping request. sendto syscall returned "
                      << ret << ", errno is: " << errno;
         }
 
@@ -83,7 +79,8 @@ Event<ReadEv>::Event(EventBase &evb) = delete;
 template <>
 Event<ReadEv>::Event(EventBase &evb, int fd) {
   this->evt = event_new(
-      evb.get(), static_cast<evutil_socket_t>(fd), EV_TIMEOUT | EV_READ,
+      evb.get(), static_cast<evutil_socket_t>(fd),
+      EV_TIMEOUT | EV_READ | EV_PERSIST,
       [](evutil_socket_t socket_fd, short what, void *arg) {
         VLOG(6) << "Read callback triggered due to " << what;
 
@@ -106,7 +103,7 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
           VLOG(3)
               << "Packet that was received was not expected from this host ("
               << src_addr_as_str << ")";
-          EXIT_READ_CALLBACK(arg, nullptr);
+          return;
         }
         if (std::all_of(Context::ipsToPing.cbegin(), Context::ipsToPing.cend(),
                         [&src_addr](auto ip) {
@@ -114,7 +111,7 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
                         })) {
           VLOG(3)
               << "Received ICMP packet from a host we are not interested in.";
-          EXIT_READ_CALLBACK(arg, nullptr);
+          return;
         }
         auto start_time =
             Context::time_map.find(src_addr.sin_addr.s_addr)->second;
@@ -134,11 +131,19 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
         auto element = std::lower_bound(Context::expected.cbegin(),
                                         Context::expected.cend(),
                                         src_addr.sin_addr.s_addr);
+        struct sockaddr_in ip_addr;
+        ip_addr.sin_family = AF_INET;
+        ip_addr.sin_addr.s_addr = *element;
+        auto ip_as_str = inet_ntoa(ip_addr.sin_addr);
+        VLOG(7) << "Found lower_bound element " << *ip_as_str
+                << " while processing packet received from: "
+                << src_addr_as_str;
         if (element != Context::expected.cend()) {
           Context::expected.erase(element);
+        } else {
         }
         VLOG(6) << "Reactivating read event.";
-        EXIT_READ_CALLBACK(arg, nullptr);
+        return;
       },
       event_self_cbarg());
   event_add(evt, nullptr);
@@ -162,7 +167,11 @@ Event<Periodic>::Event(EventBase &evb) {
 
         VLOG(6) << "Copying destination IPs to ping.";
         for (auto &ip : Context::expected) {
-          LOG(INFO) << std::left << std::setw(10) << ip << "\t"
+          struct sockaddr_in dest_addr;
+          dest_addr.sin_family = AF_INET;
+          dest_addr.sin_addr.s_addr = ip;
+          auto ip_as_str = inet_ntoa(dest_addr.sin_addr);
+          LOG(INFO) << std::left << std::setw(10) << ip_as_str << "\t"
                     << ">1s";
         }
         Context::expected = {};
