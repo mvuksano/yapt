@@ -22,19 +22,33 @@ In order to use a different compiler (e.g. clang) or a specific version of GCC y
 ```
 
 ```
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```
+
+
 
 If you need to provide customizations for GCC you can use:
 
 ```
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=./toolchains/gcc.cmake
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=`pwd`/toolchains/gcc.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```
 
 1. Build using cmake
 
 ```
 cmake --build build
+```
+
+Ensure that binary has correct capabilities set:
+
+```
+sudo setcap 'cap_net_raw=ep' build/main
+```
+
+Run binary:
+
+```
+./build/main -ips_file=sampleIPs.lst --logtostderr=1
 ```
 
 
