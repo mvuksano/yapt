@@ -12,7 +12,9 @@
 #include <string>
 
 #include "application.h"
+#include "build_options.h"
 #include "utils.hpp"
+
 
 DEFINE_string(ips, "", "comma separated list of ips to ping.");
 
@@ -27,8 +29,10 @@ int main(int argc, char** argv) {
   if (evthread_use_pthreads() != 0) {
     LOG(FATAL) << "libevent not built for use in a multithreaded environment.";
   }
-  event_set_log_callback(log_to_glog);
-  event_enable_debug_logging(EVENT_DBG_ALL);
+  if constexpr(EVENTLIB_DEBUG_ENABLE) {
+    event_set_log_callback(log_to_glog);
+    event_enable_debug_logging(EVENT_DBG_ALL);
+  }
 
   std::vector<IPAddr> ipsToPing{};
   if (FLAGS_ips_file != "") {
