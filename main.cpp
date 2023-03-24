@@ -2,6 +2,7 @@
 #include <event2/thread.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <signal.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -22,7 +23,22 @@ DEFINE_string(ips_file, "", "File which contains list of IPs to ping.");
 
 void log_to_glog(int severity, const char* msg) { VLOG(10) << msg; }
 
+void signalHandler(int sig) {
+  VLOG(6) << "Received signal " << sig;
+  exit(0);
+}
+
+void installSignalHandlers() {
+  struct sigaction sa;
+  sa.sa_handler = signalHandler;
+  sa.sa_flags = 0;
+  for (auto signal : {SIGINT, SIGQUIT}) {
+    sigaction(signal, &sa, nullptr);
+  }
+}
+
 int main(int argc, char** argv) {
+  installSignalHandlers();
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
