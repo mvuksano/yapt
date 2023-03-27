@@ -66,8 +66,31 @@ vcpkg_installed/x64-linux/tools/protobuf/protoc --grpc_out=protos --plugin=proto
 
 # Memory profiling
 
+Needed tools:
+
+1. jeprof
+1. Flamegraph
+
 ```
 sudo /bin/bash -c 'MALLOC_CONF="prof:true,prof_active:false,lg_prof_interval:2,prof_prefix:jeprof.out" ./build/yapt -ips_file=sampleIPs.lst --max_log_size=32 --logtostderr=1'
+```
+
+Convert captured profile to a format usable by flamegraph tool:
+
+```
+jeprof --collapsed build/yapt jeprof.out.357942.0.i0.heap > jeprof.out.357942.0.i0.heap.collapsed
+```
+
+Generate flamegraph:
+
+```
+~/tools/FlameGraph/flamegraph.pl jeprof.out.374693.0.i0.heap.collapsed > jeprof.out.374693.0.i0.heap.svg
+```
+
+Script to convert all files ending in *.heap in current directory to flamegraphs:
+
+```
+for f in *.heap; do jeprof --collapsed build/yapt $f > $f.collapsed; ~/tools/FlameGraph/flamegraph.pl $f.collapsed > $f.svg; done
 ```
 
 
