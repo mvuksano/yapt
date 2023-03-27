@@ -14,8 +14,8 @@
 
 #include "application.h"
 #include "build_options.h"
-#include "utils.hpp"
 #include "grpc_server.h"
+#include "utils.hpp"
 
 DEFINE_string(ips, "", "comma separated list of ips to ping.");
 
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
   if (evthread_use_pthreads() != 0) {
     LOG(FATAL) << "libevent not built for use in a multithreaded environment.";
   }
-  if constexpr(EVENTLIB_DEBUG_ENABLE) {
+  if constexpr (EVENTLIB_DEBUG_ENABLE) {
     event_set_log_callback(log_to_glog);
     event_enable_debug_logging(EVENT_DBG_ALL);
   }

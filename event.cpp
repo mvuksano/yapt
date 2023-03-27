@@ -120,7 +120,7 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
         VLOG(6) << "Received " << recv_len << " bytes from " << src_addr_as_str
                 << " on socket " << socket_fd;
         LOG(INFO) << std::left << std::setw(10) << src_addr_as_str << "\t"
-                  << duration;
+                  << duration.count() << " ms";
         std::stringstream message;
         for (auto i = 0; i < MAX_PACKET_SIZE; i++) {
           message << std::hex << std::setfill('0') << std::setw(2)
@@ -172,7 +172,7 @@ Event<Periodic>::Event(EventBase &evb) {
           dest_addr.sin_addr.s_addr = ip;
           auto ip_as_str = inet_ntoa(dest_addr.sin_addr);
           LOG(INFO) << std::left << std::setw(10) << ip_as_str << "\t"
-                    << ">1s";
+                    << "1500 ms";
         }
         Context::expected = {};
         Context::ips = Context::ipsToPing;

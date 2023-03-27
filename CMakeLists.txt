@@ -22,7 +22,8 @@ target_link_libraries(yapt PUBLIC ${JEMALLOC_LIB} ${Boost_LIBRARIES} glog::glog 
 target_include_directories(yapt PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIRS} ${gRPC_INCLUDE_DIRS}) 
 
 add_executable(yapt_test main_test.cpp ${SOURCES})
-target_link_libraries(yapt_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main glog::glog gflags::gflags ${LIBEVENT_LIBS} gRPC::grpc++)
+target_include_directories(yapt PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIRS} ${gRPC_INCLUDE_DIRS})  
+target_link_libraries(yapt_test PRIVATE ${JEMALLOC_LIB} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main glog::glog gflags::gflags ${LIBEVENT_LIBS} gRPC::grpc++)
 
 enable_testing()
 add_test(NAME yapt WORKING_DIRECTORY ${CMAKE_BUILD_DIR} COMMAND yapt_test)

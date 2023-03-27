@@ -4,6 +4,13 @@
 
 Includes support for unit testing via GoogleTest library as well as boost library to get you up and running quickly.
 
+Focus on:
+
+1. Easy to understand 
+1. Debuggability
+1. Optimizable
+1. Extensible
+
 
 # Building
 
@@ -55,6 +62,12 @@ Run binary:
 
 ```
 vcpkg_installed/x64-linux/tools/protobuf/protoc --grpc_out=protos --plugin=protoc-gen-grpc=vcpkg_installed/x64-linux/tools/grpc/grpc_cpp_plugin service.proto
+```
+
+# Memory profiling
+
+```
+sudo /bin/bash -c 'MALLOC_CONF="prof:true,prof_active:false,lg_prof_interval:2,prof_prefix:jeprof.out" ./build/yapt -ips_file=sampleIPs.lst --max_log_size=32 --logtostderr=1'
 ```
 
 
