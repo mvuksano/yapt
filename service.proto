@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+service Profile {
+	rpc EnableProfiling(EnableProfilingRequest) returns (EnableProfilingReply) {}
+}
+
+message EnableProfilingRequest {
+}
+
+message EnableProfilingReply {
+	bool success = 1;
+}

@@ -15,7 +15,7 @@
 #include "application.h"
 #include "build_options.h"
 #include "utils.hpp"
-
+#include "grpc_server.h"
 
 DEFINE_string(ips, "", "comma separated list of ips to ping.");
 
@@ -66,6 +66,8 @@ int main(int argc, char** argv) {
 
   auto tmp = ipsAsString(ipsToPing);
   VLOG(6) << "Pinging the following IPs: " << tmp;
+
+  GrpcServer server;
 
   // TODO: Pass IPs to APP w/o converting them to string first.
   App app{std::move(ipsToPing)};

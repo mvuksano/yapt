@@ -51,6 +51,12 @@ Run binary:
 ./build/main -ips_file=sampleIPs.lst --logtostderr=1
 ```
 
+# Generate GRPC files
+
+```
+vcpkg_installed/x64-linux/tools/protobuf/protoc --grpc_out=protos --plugin=protoc-gen-grpc=vcpkg_installed/x64-linux/tools/grpc/grpc_cpp_plugin service.proto
+```
+
 
 # Testing
 1. run `main_test` binary
