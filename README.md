@@ -102,3 +102,13 @@ for f in *.heap; do jeprof --collapsed build/yapt $f > $f.collapsed; ~/tools/Fla
 ```
 clang-format -style=google -dump-config > .clang-format
 ```
+
+
+# Investigating coredumps:
+
+1. Find coredump that you'd like to look into:
+
+```
+sudo coredumpctl list yapt
+sudo coredumpctl debug xxxxx
+```
