@@ -112,3 +112,23 @@ clang-format -style=google -dump-config > .clang-format
 sudo coredumpctl list yapt
 sudo coredumpctl debug xxxxx
 ```
+
+# Profiling:
+
+1. 
+
+```
+sudo /bin/bash -c 'MALLOC_CONF="prof:true,prof_active:false,lg_prof_interval:2,prof_prefix:jeprof.out" perf record -e intel_pt//u -g ./build/yapt -ips_file=sampleIPs.lst -out_file=./yapt.log --max_log_size=32 --logtostderr=1'
+```
+
+2. Turn into format suitable for turinging into a flamegraph:
+
+```
+sudo perf script --itrace=i100usg | ~/tools/FlameGraph/stackcollapse-perf.pl > workload.folded
+```
+
+3. Turn into flamegraph / icicle graph
+
+```
+~/tools/FlameGraph/flamegraph.pl --color=mem --inverted workload.folded > workload.sv
+```
