@@ -16,6 +16,7 @@ class EventBase {
   ~EventBase() = default;
   void loop();
   struct event_base *get();
+  void terminate();
 
  private:
   std::shared_ptr<struct event_base> evb;

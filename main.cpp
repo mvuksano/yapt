@@ -21,18 +21,22 @@ DEFINE_string(ips, "", "comma separated list of ips to ping.");
 
 DEFINE_string(ips_file, "", "File which contains list of IPs to ping.");
 
+DEFINE_string(out_file, "", "File where to output measurements.");
+
 void log_to_glog(int severity, const char* msg) { VLOG(10) << msg; }
 
 void signalHandler(int sig) {
   VLOG(6) << "Received signal " << sig;
-  exit(0);
+  for (auto app : App::apps) {
+    app->stop();
+  }
 }
 
 void installSignalHandlers() {
   struct sigaction sa;
   sa.sa_handler = signalHandler;
   sa.sa_flags = 0;
-  for (auto signal : {SIGINT, SIGQUIT}) {
+  for (auto signal : {SIGINT, SIGQUIT, SIGTERM}) {
     sigaction(signal, &sa, nullptr);
   }
 }
@@ -67,11 +71,13 @@ int main(int argc, char** argv) {
   auto tmp = ipsAsString(ipsToPing);
   VLOG(6) << "Pinging the following IPs: " << tmp;
 
-  GrpcServer server;
+  GrpcServer server("localhost:50555");
+  server.startInThread();
 
-  // TODO: Pass IPs to APP w/o converting them to string first.
-  App app{std::move(ipsToPing)};
+  App app{std::move(ipsToPing), FLAGS_out_file};
   app.run();
+
+  server.stop();
 
   return EXIT_SUCCESS;
 }

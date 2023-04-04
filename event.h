@@ -3,6 +3,8 @@
 
 #include <event2/event.h>
 
+#include <iostream>
+
 #include "eventbase.h"
 
 struct ReadEv {};
@@ -15,14 +17,15 @@ concept IsAnyOf = (std::same_as<T, U> || ...);
 template <IsAnyOf<ReadEv, WriteEv, Periodic> T>
 class Event {
  public:
-  Event(EventBase &);
-  Event(EventBase &, int);
+  Event(EventBase &, std::fstream &logFile);
+  Event(EventBase &, int, std::fstream &logFile);
   ~Event();
   struct event *get();
   bool enabled();
 
  private:
   struct event *evt;
+  std::fstream &logFile;
 };
 
 #endif

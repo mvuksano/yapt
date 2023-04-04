@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <event2/event.h>
 
+#include <fstream>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -15,12 +16,16 @@ class App {
  public:
   using IpAddr = uint32_t;
 
-  App(std::vector<IpAddr>&& ipList);
+  static inline std::vector<App*> apps;
+
+  App(std::vector<IpAddr>&& ipList, std::string outFile);
   void run();
+  void stop();
 
  private:
   EventBase evb;
   std::thread evb_thread;
+  std::fstream outFile;
 };
 
 #endif

@@ -9,10 +9,15 @@ using grpc::ServerBuilder;
 
 class GrpcServer {
  public:
-  GrpcServer();
+  GrpcServer(std::string addressAndPort);
+  void startInThread();
+  ~GrpcServer();
+  void stop();
 
  private:
   std::thread serverThread_;
+  std::unique_ptr<grpc::Server> server_;
+  std::string server_address_;
 };
 
 #endif

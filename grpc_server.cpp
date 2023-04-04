@@ -28,19 +28,28 @@ class ProfileServiceImpl final : public Profile::Service {
   }
 };
 
-GrpcServer::GrpcServer() {
-  serverThread_ = std::thread([]() {
-    std::string server_address = "localhost:50555";
+GrpcServer::GrpcServer(std::string addressAndPort)
+    : server_address_(addressAndPort) {}
+
+void GrpcServer::startInThread() {
+  serverThread_ = std::thread([this]() {
     ProfileServiceImpl profileService;
     ServerBuilder builder;
-    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+    builder.AddListeningPort(server_address_,
+                             grpc::InsecureServerCredentials());
     builder.RegisterService(&profileService);
-    std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
-    LOG(INFO) << "Server listening on "
-              << "localhost:50555" << std::endl;
+    server_ = builder.BuildAndStart();
+    LOG(INFO) << "Server listening on " << server_address_ << std::endl;
 
     // Wait for the server to shutdown. Note that some other thread must be
     // responsible for shutting down the server for this call to ever return.
-    server->Wait();
+    server_->Wait();
   });
 }
+
+void GrpcServer::stop() {
+  server_->Shutdown();
+  serverThread_.join();
+}
+
+GrpcServer::~GrpcServer() { LOG(INFO) << "GrpcServer dtor"; }

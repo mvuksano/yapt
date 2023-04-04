@@ -19,4 +19,9 @@ void EventBase::loop() {
   event_base_loop(evb.get(), 0);
 }
 
+void EventBase::terminate() {
+  VLOG(6) << "Terminating event base " << evb;
+  event_base_loopbreak(evb.get());
+}
+
 struct event_base *EventBase::get() { return evb.get(); }

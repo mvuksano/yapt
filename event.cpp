@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 
@@ -26,10 +27,11 @@ bool Event<T>::enabled() {
 }
 
 template <>
-Event<WriteEv>::Event(EventBase &evb) = delete;
+Event<WriteEv>::Event(EventBase &evb, std::fstream &logFile) = delete;
 
 template <>
-Event<WriteEv>::Event(EventBase &evb, int fd) {
+Event<WriteEv>::Event(EventBase &evb, int fd, std::fstream &logFile)
+    : logFile(logFile) {
   this->evt = event_new(
       evb.get(), static_cast<evutil_socket_t>(fd), EV_WRITE,
       [](evutil_socket_t socket_fd, short what, void *arg) {
@@ -74,10 +76,11 @@ Event<WriteEv>::Event(EventBase &evb, int fd) {
 }
 
 template <>
-Event<ReadEv>::Event(EventBase &evb) = delete;
+Event<ReadEv>::Event(EventBase &evb, std::fstream &logFile) = delete;
 
 template <>
-Event<ReadEv>::Event(EventBase &evb, int fd) {
+Event<ReadEv>::Event(EventBase &evb, int fd, std::fstream &logFile)
+    : logFile(logFile) {
   this->evt = event_new(
       evb.get(), static_cast<evutil_socket_t>(fd),
       EV_TIMEOUT | EV_READ | EV_PERSIST,
@@ -121,6 +124,9 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
                 << " on socket " << socket_fd;
         LOG(INFO) << std::left << std::setw(10) << src_addr_as_str << "\t"
                   << duration.count() << " ms";
+        auto dur = duration.count();
+        ((std::fstream *)arg)
+            ->write(reinterpret_cast<char *>(&dur), sizeof(dur));
         std::stringstream message;
         for (auto i = 0; i < MAX_PACKET_SIZE; i++) {
           message << std::hex << std::setfill('0') << std::setw(2)
@@ -145,13 +151,14 @@ Event<ReadEv>::Event(EventBase &evb, int fd) {
         VLOG(6) << "Reactivating read event.";
         return;
       },
-      event_self_cbarg());
+      &logFile);
   event_add(evt, nullptr);
   VLOG(6) << "Added read event for socket " << fd;
 }
 
 template <>
-Event<Periodic>::Event(EventBase &evb) {
+Event<Periodic>::Event(EventBase &evb, std::fstream &logFile)
+    : logFile(logFile) {
   struct timeval one_sec = {1, 0};
   auto ev = event_new(
       evb.get(), -1, 0,
@@ -186,4 +193,4 @@ Event<Periodic>::Event(EventBase &evb) {
 }
 
 template <>
-Event<Periodic>::Event(EventBase &evb, int fd) = delete;
+Event<Periodic>::Event(EventBase &evb, int fd, std::fstream &logFile) = delete;
