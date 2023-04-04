@@ -20,7 +20,6 @@ set(LIBEVENT_LIBS libevent::core libevent::extra libevent::pthreads)
 add_executable(yapt main.cpp ${SOURCES})
 target_link_libraries(yapt PUBLIC ${JEMALLOC_LIB} ${Boost_LIBRARIES} glog::glog gflags::gflags ${LIBEVENT_LIBS} gRPC::grpc++)
 target_include_directories(yapt PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIRS} ${gRPC_INCLUDE_DIRS}) 
-target_link_options(yapt PUBLIC "-static-libstdc++")
 
 add_executable(yapt_test main_test.cpp ${SOURCES})
 target_include_directories(yapt PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIRS} ${gRPC_INCLUDE_DIRS})  
